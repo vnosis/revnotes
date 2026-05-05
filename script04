@@ -1,0 +1,50 @@
+# 1. Setup the data from the two 'movabs' lines
+# These are stored at [rsp + 4] and [rsp + 0xa]
+part1 = 0xdaa40a861e9f81cd
+part2 = 0x44cc75e1cb45daa4
+
+# Combined data (8 bytes each, note the overlap in assembly [rsp+4] vs [rsp+0xa])
+full_mem = bytearray(part1.to_bytes(8, 'little'))
+# The second movabs starts at offset 6 relative to the first (0xa - 4 = 6)
+part2_bytes = part2.to_bytes(8, 'little')
+for i in range(8):
+    if 6 + i < len(full_mem):
+        full_mem[6 + i] = part2_bytes[i]
+    else:
+        full_mem.append(part2_bytes[i])
+
+# 2. First Loop Logic (0x1090 to 0x10a6)
+# rdx starts at [rsp+4], rsi is [rsp+0x12]. Offset difference = 14 bytes.
+edi = 0xffffffa5
+loop1_result = [0] * 14
+
+for i in range(14):
+    # lea eax, [rdi + rdx] -> Note: rdx here is the address/offset
+    eax = (edi + i) & 0xFFFFFFFF
+    # xor al, byte [rdx]
+    al = (eax ^ full_mem[i]) & 0xFF
+    # ror al, 3
+    al = ((al >> 3) | (al << 5)) & 0xFF
+    # Move back to front: rcx starts at [rsp+0x1f], sub rcx, 1
+    loop1_result[13 - i] = al
+
+# 3. Second Loop Logic (0x10b8 to 0x10d1)
+# This loop processes the result from Loop 1 (now at [rsp+0x12])
+final_chars = []
+ecx = 0
+
+for i in range(14):
+    val = loop1_result[i]
+    # sub eax, ecx
+    val = (val - ecx) & 0xFF
+    # add ecx, 7
+    ecx = (ecx + 7) & 0xFFFFFFFF
+    # ror al, 1
+    val = ((val >> 1) | (val << 7)) & 0xFF
+    # xor eax, 0x3c
+    val = (val ^ 0x3c) & 0xFF
+    
+    final_chars.append(chr(val))
+
+# 4. Final Output
+print("".join(final_chars))
