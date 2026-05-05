@@ -1,0 +1,45 @@
+# 1. Setup the data from the instructions
+part1 = 0x42404b544b474652
+extra_byte = 0x61
+
+# The code stores part1 at [rsp + 0xd] and 0x61 at [rsp + 0x15]
+# [rsp+0xd] is 8 bytes, [rsp+0x15] is 1 byte immediately following it.
+data = bytearray(part1.to_bytes(8, 'little'))
+data += extra_byte.to_bytes(1, 'little')
+
+# 2. Setup initial register states
+eax = 0x21          # mov eax, 0x21
+edi = 0x13          # mov edi, 0x13
+# rdx starts at [rsp + 0xd] (index 0)
+# r8 is the end pointer at [rsp + 0x16] (index 9)
+
+# We need a placeholder for the result because the loop 
+# stores results into a different area ([rcx + 1])
+decoded_chars = [0] * 9
+
+# 3. The Loop (Runs until rdx matches r8)
+for i in range(9):
+    # 0x1088: movzx esi, byte [rdx]
+    esi = data[i]
+    
+    # 0x108f: xor esi, eax
+    esi = (esi ^ eax) & 0xFF
+    
+    # 0x1091: mov byte [rcx + 1], sil
+    # This stores the byte. Since rcx starts at the end and moves back,
+    # we can just fill our result list.
+    decoded_chars[8 - i] = chr(esi)
+    
+    # 0x1095: lea esi, [rdi + rdx_address] 
+    # In a script, this is effectively using the index and the edi base
+    temp_esi = (edi + i) & 0xFFFFFFFF
+    
+    # 0x109c: xor eax, esi
+    eax = (eax ^ temp_esi) & 0xFFFFFFFF
+    
+    # 0x109e: add eax, 2
+    eax = (eax + 2) & 0xFFFFFFFF
+
+# 4. Final Output
+# The assembly constructs the string backwards, so we join it
+print("".join(decoded_chars))
