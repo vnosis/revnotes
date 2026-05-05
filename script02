@@ -1,0 +1,29 @@
+# 1. Data from movabs lines
+part1 = 0x1435262a0f292408
+part2 = 0x171604302b2b14
+
+# 2. Combine bytes
+data = bytearray(part1.to_bytes(8, 'little'))
+data += part2.to_bytes(7, 'little') 
+
+# 3. Execution logic
+decoded_chars = []
+eax = 0x47  # Initial value
+edx = 0     # Loop counter
+
+for i in range(14):
+    byte = data[i]
+    
+    # Simulate 'al' by masking eax to 8 bits
+    al = eax & 0xFF
+    
+    # xor byte [rcx], al
+    decrypted_byte = byte ^ al
+    decoded_chars.append(chr(decrypted_byte))
+    
+    # Update registers for next round
+    eax = (eax + 3) & 0xFFFFFFFF
+    eax = (eax ^ edx) & 0xFFFFFFFF
+    edx = (edx + 1) & 0xFFFFFFFF
+
+print("".join(decoded_chars))

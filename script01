@@ -1,0 +1,14 @@
+rax = 0x2f28332b072f07382512
+
+data = bytearray(rax.to_bytes(12, 'little'))
+
+decoded_chars = []
+key = 0x4a
+
+for byte in data:
+	xorb = byte^key
+	character = chr(xorb)
+	decoded_chars.append(character)
+
+print(decoded_chars)
+
